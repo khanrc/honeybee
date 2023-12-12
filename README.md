@@ -2,7 +2,7 @@
 
 # 🐝 Honeybee: Locality-enhanced Projector for Multimodal LLM
 
-This is an official PyTorch Implementation of [**Honeybee: Locality-enhanced Projector for Multimodal LLM**](), *Junbum Cha<sup>\*</sup>, Wooyoung Kang<sup>\*</sup>, Jonghwan Mun<sup>\*</sup>, Byungseok Roh*.
+This is an official PyTorch Implementation of [**Honeybee: Locality-enhanced Projector for Multimodal LLM**](./assets/Honeybee.pdf), *Junbum Cha<sup>\*</sup>, Wooyoung Kang<sup>\*</sup>, Jonghwan Mun<sup>\*</sup>, Byungseok Roh*. [[paper](./assets/Honeybee.pdf)]
 
 
 <p align="center"><img width="100%" src="./assets/fig.png"></p>
@@ -10,6 +10,7 @@ This is an official PyTorch Implementation of [**Honeybee: Locality-enhanced Pro
 ## Catalog
 
 **Comming soon:**
+- [ ] Arxiv (in progress)
 - [ ] Inference code & checkpoint (planned by ~12/15)
 - [ ] Training code
 
@@ -41,6 +42,11 @@ MMB, SEED-I, and LLaVA-w indicate MMB dev split, SEED-Bench images, and LLaVA-Be
 
 ## Citation
 
-```
-To be updated
+```bibtex
+@misc{cha2023honeybee,
+  title={Honeybee: Locality-enhanced Projector for Multimodal LLM},
+  author={Junbum Cha and Wooyoung Kang and Jonghwan Mun and Byungseok Roh},
+  howpublished={preprint},
+  year={2023}
+}
 ```
