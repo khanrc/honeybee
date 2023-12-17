@@ -9,7 +9,7 @@ This is an official PyTorch Implementation of [**Honeybee: Locality-enhanced Pro
 
 ## Catalog
 
-**Comming soon:**
+**Coming soon:**
 - [x] Arxiv
 - [ ] Inference code & checkpoint (planned by ~12/15)
 - [ ] Training code
