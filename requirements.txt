@@ -1,0 +1,14 @@
+numpy==1.23.4
+omegaconf==2.3.0
+pandas==1.5.3
+peft==0.3.0
+Pillow==9.4.0
+PyYAML==6.0
+scikit_learn==1.2.1
+sconf==0.2.5
+timm==0.9.8
+tokenizers==0.13.3
+tqdm==4.64.1
+transformers==4.30.2
+eionops==0.7.0
+prettytable==3.9.0

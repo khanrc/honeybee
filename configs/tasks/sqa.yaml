@@ -1,0 +1,15 @@
+sqa:
+  name: SQATask
+  dataloader:
+    batch_size: 8
+    num_workers: 8
+  dataset:
+    name: SQADataset
+    split: test
+    root: ./data/ScienceQA
+  gen_kwargs:
+    max_length: 128
+    top_k: 5
+    num_beams: 1
+    do_sample: False
+    use_cache: True

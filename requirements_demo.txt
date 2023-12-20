@@ -1,0 +1,4 @@
+decord==0.6.0
+markdown2==2.4.10
+gradio==3.36.1
+requests==2.31.0

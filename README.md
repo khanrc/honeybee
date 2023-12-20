@@ -9,17 +9,28 @@ This is an official PyTorch Implementation of [**Honeybee: Locality-enhanced Pro
 
 ## Catalog
 
-**Comming soon:**
+**Coming soon:**
 - [x] Arxiv
-- [ ] Inference code & checkpoint (planned by ~12/15)
+- [x] Inference code
+- [ ] Checkpoints
 - [ ] Training code
 
 
 ## Selected Examples
 <p align="center"><img width="80%" src="./assets/examples.png"></p>
 
-## Model Zoo
+## Environment
 
+- PyTorch `2.0.1`
+
+```bash
+pip install -r requirements.txt
+
+# additional requirements for demo
+pip install -r requirements_demo.txt
+```
+
+## Model Zoo
 We use [MMB](http://arxiv.org/abs/2307.06281), [MME](https://arxiv.org/abs/2306.13394), [SEED-Bench](https://arxiv.org/abs/2307.16125), and [LLaVA-Bench (in-the-wild)](https://github.com/haotian-liu/LLaVA/blob/main/docs/LLaVA_Bench.md#llava-bench-in-the-wild-ongoing-work) for model evaluation.  
 MMB, SEED-I, and LLaVA-w indicate MMB dev split, SEED-Bench images, and LLaVA-Bench (in-the-wild), respectively.
 
@@ -40,6 +51,75 @@ MMB, SEED-I, and LLaVA-w indicate MMB dev split, SEED-Bench images, and LLaVA-Be
 | Honeybee-C-13B-M576 | TBU | 73.6 | 1976.5 | 68.6   | 77.5    | 94.4 |
 
 
+## Evaluation
+
+### Data and Checkpoints Preparation
+Please follow the official guidelines to prepare benchmark datasets: [MMB](https://opencompass.org.cn/MMBench), [MME](https://github.com/BradyFU/Awesome-Multimodal-Large-Language-Models/tree/Evaluation), [SEED-Bench](https://github.com/AILab-CVC/SEED-Bench/blob/main/DATASET.md#data-preparation-for-seed-bench-1), [ScienceQA](https://github.com/lupantech/ScienceQA), and [OwlEval](https://github.com/X-PLUG/mPLUG-Owl/tree/main/mPLUG-Owl/OwlEval).
+Then, organize the data and checkpoints as follows: 
+```
+data
+├── MMBench
+│   ├── mmbench_dev_20230712.tsv         # MMBench dev split
+│   └── mmbench_test_20230712.tsv        # MMBench test split
+│
+├── MME
+│   ├── OCR                              # Directory for OCR subtask
+│   ├── ...
+│   └── text_translation
+│
+├── SEED-Bench
+│   ├── SEED-Bench-image                 # Directory for image files
+│   └── SEED-Bench.json                  # Annotation file
+│
+├── ScienceQA
+│   ├── llava_test_QCM-LEPA.json         # Test split annotation file
+│   ├── text                             # Directory for meta data
+│   │   ├── pid_splits.json
+│   │   └── problems.json
+│   └── images                           # Directory for image files
+│       └── test
+│
+└── OwlEval
+    ├── questions.jsonl                  # Question annotations
+    └── images                           # Directory for image files
+
+checkpoints
+├── 7B-C-Abs-M144
+├── 7B-C-Abs-M256
+├── 7B-D-Abs-M144
+├── 13B-C-Abs-M256
+├── 13B-C-Abs-M576
+└── 13B-D-Abs-M256
+```
+
+### Evaluation
+
+```bash
+torchrun --nproc_per_node=auto --standalone eval_tasks.py \
+    --ckpt_path checkpoints/7B-C-Abs-M144/last \
+    --config \
+        configs/tasks/mme.yaml \
+        configs/tasks/mmb.yaml \
+        configs/tasks/seed.yaml \
+        configs/tasks/sqa.yaml
+```
+
+#### Strict reproduction of official results
+
+We utilized batch inference in our evaluation to accelerate experiments. The batch inference does not significantly change average scores, but individual scores may vary slightly (about ±0.1~0.2). To strictly reproduce the official results, the use of 8 devices (GPUs) is required; the number of devices influences batch construction, affecting the final scores. 
+We used the default batch size specified in each task config, except for the largest model (`Honeybee-C-13B-M576`) where we used B=8 due to memory constraints.
+
+### Inference and Demo
+
+Example code for the inference is provided in [inference_example.ipynb](./inference_example.ipynb).
+The example images in `./examples` are adopted from [mPLUG-Owl](https://github.com/X-PLUG/mPLUG-Owl/tree/main/mPLUG-Owl/examples).
+
+We also provide gradio demo:
+
+```bash
+python -m serve.web_server --bf16 --port {PORT} --base-model checkpoints/7B-C-Abs-M144/last
+```
+
 ## Citation
 
 ```bibtex
@@ -50,3 +130,12 @@ MMB, SEED-I, and LLaVA-w indicate MMB dev split, SEED-Bench images, and LLaVA-Be
   year={2023}
 }
 ```
+
+
+## License
+
+The source code is licensed under [Apache 2.0 License](LICENSE.apache-2.0).  
+The pretrained weights are licensed under [CC-BY-NC 4.0 License](https://creativecommons.org/licenses/by-nc/4.0/).
+
+
+Acknowledgement: this project is developed based on [mPLUG-Owl](https://github.com/X-PLUG/mPLUG-Owl), which is also under the [Apache 2.0 License](https://github.com/X-PLUG/mPLUG-Owl/blob/main/mPLUG-Owl/LICENSE).
