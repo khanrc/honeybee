@@ -175,7 +175,7 @@ class HoneybeeConfig(PretrainedConfig):
 
         # config for projector
         self.num_query_tokens = num_query_tokens
-        if visual_projector_config["projector_type"].startswith("ddetr"):
+        if visual_projector_config["projector_type"].startswith("d-abs"):
             self.visual_projector_config = DeformableDetrConfig()
             # overwrite manual arguments
             self.visual_projector_config.update(visual_projector_config)
