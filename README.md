@@ -12,7 +12,7 @@ This is an official PyTorch Implementation of [**Honeybee: Locality-enhanced Pro
 **Coming soon:**
 - [x] Arxiv
 - [x] Inference code
-- [ ] Checkpoints
+- [x] Checkpoints
 - [ ] Training code
 
 
@@ -38,17 +38,17 @@ MMB, SEED-I, and LLaVA-w indicate MMB dev split, SEED-Bench images, and LLaVA-Be
 
 | Model               | Checkpoint   | MMB  | MME    | SEED-I | LLaVA-w |
 |:--------------------|:------------:|:----:|:------:|:------:|:-------:|
-| Honeybee-C-7B-M144  | TBU | 70.1 | 1891.3 | 64.5   | 67.1    |
-| Honeybee-D-7B-M144  | TBU | 70.8 | 1835.5 | 63.8   | 66.3    |
-| Honeybee-C-13B-M256 | TBU | 73.2 | 1944.0 | 68.2   | 75.7    |
-| Honeybee-D-13B-M256 | TBU | 73.5 | 1950.0 | 66.6   | 72.9    |
+| Honeybee-C-7B-M144  | [download](https://arena.kakaocdn.net/brainrepo/models/honeybee/7B-C-Abs-M144.tar.gz) | 70.1 | 1891.3 | 64.5   | 67.1    |
+| Honeybee-D-7B-M144  | [download](https://arena.kakaocdn.net/brainrepo/models/honeybee/7B-D-Abs-M144.tar.gz) | 70.8 | 1835.5 | 63.8   | 66.3    |
+| Honeybee-C-13B-M256 | [download](https://arena.kakaocdn.net/brainrepo/models/honeybee/13B-C-Abs-M256.tar.gz) | 73.2 | 1944.0 | 68.2   | 75.7    |
+| Honeybee-D-13B-M256 | [download](https://arena.kakaocdn.net/brainrepo/models/honeybee/13B-D-Abs-M256.tar.gz) | 73.5 | 1950.0 | 66.6   | 72.9    |
   
 - Pushing the limits of Honeybee (Table 7)
 
 | Model               | Checkpoint   | MMB  | MME    | SEED-I | LLaVA-w | ScienceQA |
 |:--------------------|:------------:|:----:|:------:|:------:|:-------:|:-------:|
-| Honeybee-C-7B-M256  | TBU | 71.0 | 1951.3 | 65.5   | 70.6    | 93.2 |
-| Honeybee-C-13B-M576 | TBU | 73.6 | 1976.5 | 68.6   | 77.5    | 94.4 |
+| Honeybee-C-7B-M256  | [download](https://arena.kakaocdn.net/brainrepo/models/honeybee/7B-C-Abs-M256.tar.gz) | 71.0 | 1951.3 | 65.5   | 70.6    | 93.2 |
+| Honeybee-C-13B-M576 | [download](https://arena.kakaocdn.net/brainrepo/models/honeybee/13B-C-Abs-M576.tar.gz) | 73.6 | 1976.5 | 68.6   | 77.5    | 94.4 |
 
 
 ## Evaluation
