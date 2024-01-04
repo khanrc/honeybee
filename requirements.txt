@@ -10,5 +10,5 @@ timm==0.9.8
 tokenizers==0.13.3
 tqdm==4.64.1
 transformers==4.30.2
-eionops==0.7.0
+einops==0.7.0
 prettytable==3.9.0
