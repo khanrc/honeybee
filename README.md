@@ -139,3 +139,9 @@ The pretrained weights are licensed under [CC-BY-NC 4.0 License](https://creativ
 
 
 Acknowledgement: this project is developed based on [mPLUG-Owl](https://github.com/X-PLUG/mPLUG-Owl), which is also under the [Apache 2.0 License](https://github.com/X-PLUG/mPLUG-Owl/blob/main/mPLUG-Owl/LICENSE).
+
+
+## Disclaimer
+
+Kakao Brain "Honeybee" is the name of the Multimodal Large Language Model (MLLM) open source project, not the customer service brand.
+
