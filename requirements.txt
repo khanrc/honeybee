@@ -12,3 +12,4 @@ tqdm==4.64.1
 transformers==4.30.2
 einops==0.7.0
 prettytable==3.9.0
+sentencepiece==0.1.99
