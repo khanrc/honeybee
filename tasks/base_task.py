@@ -22,11 +22,12 @@ class TaskScore:
 class Task:
     default_gen_kwargs = {}
 
-    def __init__(self, model, tokenizer, processor, data_loader, gen_kwargs=None):
+    def __init__(self, model, tokenizer, processor, data_loader, gen_kwargs=None, debug=False):
         self.model = utils.unwrap_ddp(model)
         self.tokenizer = tokenizer
         self.processor = processor
         self.data_loader = data_loader
+        self.debug = debug
 
         if gen_kwargs is not None:
             self.default_gen_kwargs = {
@@ -95,6 +96,9 @@ class Task:
                     "pred": pred,
                     **data,
                 }
+
+            if self.debug and i >= 20:
+                break
 
         return results
 

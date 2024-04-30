@@ -1,0 +1,9 @@
+train:
+  default:
+    type: DefaultProcessor
+    image_size: ${image_size}
+
+valid:
+  default:
+    type: DefaultProcessor
+    image_size: ${image_size}

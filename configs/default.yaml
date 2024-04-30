@@ -1,0 +1,59 @@
+defaults:
+  - model_config:
+    - vit-l-p14
+    - c-abs
+    - vicuna-7b
+  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: disabled
+
+data_config:
+  bbox_coord_style: 3  # bbox coordinates style
+
+output_dir: null
+image_size: 224
+deterministic: False
+
+pretrained_ckpt: null
+load_model_config_from_ckpt: False  # Caution: config interpolation is not supported
+n_freeze_vision_blocks: null  # if set, freeze the first n blocks of the vision model
+
+train:
+  eval_on_task: True
+
+trainer_kwargs:
+  output_dir: ${output_dir}
+  bf16: True
+  fp16: False
+  do_train: True
+  dataloader_num_workers: 8
+  evaluation_strategy: steps
+  eval_steps: null  # should be overlapped.
+  save_strategy: "no"
+  save_steps: ${trainer_kwargs.eval_steps}
+  save_total_limit: 1  # only 1 checkpoint is kept
+  gradient_checkpointing: True
+  ddp_find_unused_parameters: False
+  report_to: tensorboard
+  logging_dir: ${output_dir}/tb
+  logging_steps: 20
+  seed: 42
+  deepspeed: configs/deepspeed/zero2.json
+  # Adam HPs from Qwen-VL; for stabilize training
+  optim: adamw_torch
+  adam_beta1: 0.9
+  adam_beta2: 0.98
+  adam_epsilon: 1e-6
+
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+lora_config:
+  use_lora: False
+  target_modules: '.*language_model.*\.(q_proj|v_proj)'
+  inference_mode: False
+  lora_r: 8
+  lora_alpha: 32
+  lora_dropout: 0.05
+  modules_to_save: ${train.module_to_update}

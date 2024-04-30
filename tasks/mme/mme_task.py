@@ -1,3 +1,4 @@
+import os
 from collections import defaultdict
 from prettytable import PrettyTable
 
@@ -6,7 +7,7 @@ from tasks.mme.calc_score import MMEMetric
 
 
 class MMEScore(TaskScore):
-    def get_summary(self, max_level=2):
+    def get_summary(self, max_level=3):
         ret = {
             "total": self.scores["Total"][0],
         }
@@ -60,8 +61,8 @@ class MMEScore(TaskScore):
 
 
 class MMETask(Task):
-    def compute_score(self, results):
-        # 1. integrate outputs
+    def integrate_outputs(self, results):
+        """Integrate outputs to MME-style format"""
         outputs = defaultdict(list)
 
         for m in results.values():
@@ -73,9 +74,24 @@ class MMETask(Task):
 
             outputs[dataset_name].append("\t".join((image_id, question, answer, pred)))
 
+        return outputs
+
+    def compute_score(self, results):
+        # 1. integrate outputs
+        outputs = self.integrate_outputs(results)
+
         # 2. compute metric
         metric = MMEMetric()
         res = metric.process_result(outputs)
         score = MMEScore(res)
 
         return score
+
+    def dump_submission_file(self, result_dir: str, results: dict):
+        outputs = self.integrate_outputs(results)
+        # write outputs to results_dir / MME_submission / f"{dset_name}.txt"
+        submission_dir = os.path.join(result_dir, "MME_submission")
+        os.makedirs(submission_dir, exist_ok=True)
+        for dset_name, lines in outputs.items():
+            with open(os.path.join(submission_dir, f"{dset_name}.txt"), "w") as f:
+                f.write("\n".join(lines))

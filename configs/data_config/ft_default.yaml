@@ -1,0 +1,45 @@
+defaults:
+  - _self_
+  - train_dataset:
+    - coyo100m # captioning
+    - vqa # open-ended vqa
+    - gqa
+    - ocrvqa
+    - vsr
+    - sqa # multiple-choices vqa
+    - aokvqa
+    - refcoco # referring expression comprehension
+    - refcoco+
+    - refcocog
+    - vgloc
+    - llava150k # instruction
+    - vicuna40k
+    
+  - processors: default
+
+cluster_shuffle: False  # shuffle data in cluster (only effective for multiturn)
+truncation_on_batchify: False
+train_cfg:
+  max_length: 1023
+  sampling_weights:  [
+    0.077,
+    0.103,
+    0.103,
+    0.051,
+    0.026,
+    0.051,
+    0.103,
+    0.103,
+    0.103,
+    0.103,
+    0.051,
+    0.103,
+    0.026,
+  ]
+
+template:
+  name: "honeybee_default"
+  option:
+    shuffle: True
+    aug_idx_style: False
+    include_answer_str: False

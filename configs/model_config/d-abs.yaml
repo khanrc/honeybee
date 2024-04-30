@@ -1,0 +1,18 @@
+projector_config:
+  projector_type: d-abs
+  d_model: 1024 # hidden_dim
+  decoder_layers: 6
+  use_pretrained_backbone: False  # False: from scratch
+  num_eos_tokens: 0
+  initializer_range: 0.02  # initialization std for eos tokens
+  disable_custom_kernels: False  # use custom cuda kernel or pytorch implementation
+  # below is for ablation
+  num_feature_levels: 1
+  feature_layer_index: -1  # vision feature layer index; -1: last layer
+  pos_emb: True
+  manual_init_refPoints: True
+  learnable_mRP: True
+  pooled_v_target: query
+
+  num_queries: ${model_config.projector_config.num_query_tokens}  # required
+  num_query_tokens: 144

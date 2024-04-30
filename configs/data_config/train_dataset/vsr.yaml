@@ -1,0 +1,7 @@
+vsr:
+  classname: VSRDataset
+  data_cfg:
+    input_path: "./data/VSR/random/train.jsonl"
+    image_root_path: "./data/VSR/images/"
+    split: train
+    nturn: 1

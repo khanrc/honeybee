@@ -1,3 +1,7 @@
+"""Modified from the LLaVA implementation:
+    https://github.com/haotian-liu/LLaVA/blob/main/llava/eval/model_vqa_science.py
+"""
+
 import os
 
 import pandas as pd
@@ -8,7 +12,7 @@ import utils
 
 
 class MMBDataset(TaskDataset):
-    def __init__(self, root, processor, split="dev", sys_prompt="There are several options:"):
+    def __init__(self, root, processor, template_name: str, split="dev", sys_prompt="There are several options:", template_pattern="mmb"):
         self.root = root
         self.split = split
         self.sys_prompt = sys_prompt
@@ -16,6 +20,7 @@ class MMBDataset(TaskDataset):
 
         self.df = pd.read_csv(annotation_path, sep="\t")
         self.processor = processor
+        self.set_templatizer(template_pattern, template_name)
 
         utils.print_rank_0(f"MMBench total {split} dataset size = {len(self.df)}")
 
@@ -29,7 +34,6 @@ class MMBDataset(TaskDataset):
             return "N/A"
 
     def __getitem__(self, idx):
-        # item = self.data[index]
         # Step 1: parse available information.
         index = self.df.iloc[idx]["index"]
         image = decode_base64_to_image(self.df.iloc[idx]["image"])
@@ -53,7 +57,7 @@ class MMBDataset(TaskDataset):
         hint = self.load_from_df(idx, "hint")
 
         # Step2: construct prompt for model input
-        prompt = f"Answer with the option's letter from the given choices directly. {question}"
+        prompt = question
         prompt += f"\nContext: {hint}"
         prompt += f"\n{options_prompt}"
         prompt = self.build_prompt(prompt)

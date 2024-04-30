@@ -1,0 +1,9 @@
+vqa:
+  classname: VQADataset
+  data_cfg:
+    root: "./data/VQAv2"
+    split: train
+    nturn: 10  # number of QA pairs per image
+    dedup:
+      key: answer
+      whitelist: all  # all indicates no deduplication

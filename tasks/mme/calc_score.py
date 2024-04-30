@@ -152,7 +152,7 @@ class MMEMetric:
 
                 # cal TP precision acc, etc.
                 metric_dict = self.compute_metric(gts, preds)
-                acc_plus = acc_plus_correct_num / img_num
+                acc_plus = acc_plus_correct_num / img_num if img_num else 0.
                 metric_dict["acc_plus"] = acc_plus
 
 

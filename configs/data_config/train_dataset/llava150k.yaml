@@ -1,0 +1,10 @@
+llava150k:
+  classname: LLaVAInstructDataset
+  data_cfg:
+    input_files:
+      - "./data/llava_instruct_150k/complex_reasoning_77k.json"
+      - "./data/llava_instruct_150k/conversation_58k.json"
+      - "./data/llava_instruct_150k/detail_23k.json"
+    image_root_path: "./data/opensets_coco/images/train2017/"
+    image_tokens: ["<image>\n", "\n<image>"]
+    as_instruct: True

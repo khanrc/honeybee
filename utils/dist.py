@@ -1,22 +1,41 @@
 import os
 import torch.distributed as dist
-from torch.nn.parallel import DistributedDataParallel
 
 
-def unwrap_ddp(wrapped_module):
-    if isinstance(wrapped_module, DistributedDataParallel):
-        module = wrapped_module.module
-    else:
-        module = wrapped_module
-    return module
+def get_dist_info() -> str:
+    """Check distributed training env variables"""
+    # Tested on the instance (best.sh):
+    # LOCAL_RANK = 2 | RANK = 2 | MASTER_ADDR = 127.0.0.1 | MASTER_PORT = 29500 | WORLD_SIZE = 4
+    keys = [
+        "NODE_RANK",
+        "GROUP_RANK",
+        "LOCAL_RANK",
+        "RANK",
+        "GLOBAL_RANK",
+        "MASTER_ADDR",
+        "MASTER_PORT",
+        # for now, torch.distributed.run env variables
+        # https://github.com/pytorch/pytorch/blob/d69c22dd61/torch/distributed/run.py#L121
+        "ROLE_RANK",
+        "LOCAL_WORLD_SIZE",
+        "WORLD_SIZE",
+        "ROLE_WORLD_SIZE",
+        "TORCHELASTIC_RESTART_COUNT",
+        "TORCHELASTIC_MAX_RESTARTS",
+        "TORCHELASTIC_RUN_ID",
+    ]
+    rs = []
+    for key in keys:
+        r = os.getenv(key)
+        if r:
+            s = f"{key} = {r}"
+            rs.append(s)
+
+    return " | ".join(rs)
 
 
 def is_dist_avail_and_initialized():
-    if not dist.is_available():
-        return False
-    if not dist.is_initialized():
-        return False
-    return True
+    return dist.is_available() and dist.is_initialized()
 
 
 def get_world_size():

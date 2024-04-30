@@ -1,5 +1,7 @@
+import os
 from prettytable import PrettyTable
 from tasks.base_task import Task, TaskScore
+import utils
 
 
 class SEEDScore(TaskScore):
@@ -50,7 +52,6 @@ def calc_seed_score(results: dict):
         total_count += type_counts[data_type]
         total_correct += correct_counts[data_type]
 
-    # collect q_types, sorted by q_id, from results
     q_types = {
         item["question_type_id"]: item["question_type"]
         for item in results.values()
@@ -80,3 +81,17 @@ class SEEDTask(Task):
         scores = SEEDScore(scores)
 
         return scores
+
+    def dump_submission_file(self, result_dir: str, results: dict):
+        outs = []
+        for dic in results.values():
+            seed_dic = {
+                "question_id": dic["question_id"],
+                "prediction": dic["pred"].strip(),
+            }
+            if dic["pred"].strip() not in ["A", "B", "C", "D"]:
+                print(f"!!! [format error] pred: {dic['pred']}")
+
+            outs.append(seed_dic)
+
+        utils.dump(outs, os.path.join(result_dir, "SEED_submission.jsonl"))

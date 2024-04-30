@@ -1,0 +1,3 @@
+lm_config:
+  pretrained_lm_name_or_path: "llama-2-13b-chat"
+  pretrained_tokenizer_name_or_path: "./hf_home/hub/tokenizers--llama2"

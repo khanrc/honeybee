@@ -1,13 +1,11 @@
 """Modified from the LLaVA implementation:
     https://github.com/haotian-liu/LLaVA/blob/main/llava/eval/model_vqa_science.py
-
-
 """
 import json
 import os
 
-from PIL import Image
 from tasks.base_dataset import TaskDataset, Example
+import utils
 
 
 class OWLDataset(TaskDataset):
@@ -31,7 +29,7 @@ class OWLDataset(TaskDataset):
         question = item["question"]
 
         imgpath = os.path.join(self.image_folder, item["image"])
-        image = Image.open(imgpath)
+        image = utils.load_image(imgpath)
         image_prompt = "Human: <image>"
 
         prompt = self.build_prompt(question, image_prompt)

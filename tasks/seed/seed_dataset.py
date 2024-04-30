@@ -1,14 +1,12 @@
-import os
 from pathlib import Path
-from PIL import Image
 from tasks.base_dataset import TaskDataset, Example
-from pipeline.data_utils.utils import optionize
+from pipeline.data_utils.datasets.base_task import optionize
 import utils
 
 
 class SEEDDataset(TaskDataset):
     """SEED-Bench dataset"""
-    def __init__(self, root, processor, target="image"):
+    def __init__(self, root, processor, template_name, target="image"):
         assert target in ["image", "video", "all"]
         assert target == "image", "video is not supported yet"
         root = Path(root)
@@ -29,6 +27,7 @@ class SEEDDataset(TaskDataset):
         self.qid2type = {qid: qtype for qtype, qid in self.question_types.items()}
 
         self.processor = processor
+        self.set_templatizer("mmb", template_name)
         utils.print_rank_0(f"SEED-Bench total dataset size = {len(self.data)}")
 
     def __len__(self):
@@ -38,7 +37,7 @@ class SEEDDataset(TaskDataset):
         dic = self.data[index]
         data_id = dic["data_id"]
         image_path = self.image_root / data_id
-        image = Image.open(image_path)
+        image = utils.load_image(image_path)
         question = dic["question"]
         indices = "abcd"
         choices = [dic[f"choice_{idx}"] for idx in indices]
@@ -46,12 +45,11 @@ class SEEDDataset(TaskDataset):
         answer_index = indices.index(answer.lower())
         option_str, answer_str = optionize(choices, answer_index)
 
-        prompt = f"Answer with the option's letter from the given choices directly. {question}\nThere are several options:\n{option_str}\n"
-        prompt = self.build_prompt(prompt)
+        prompt = self.build_prompt(f"{question}\nThere are several options:\n{option_str}\n")
 
         data = {
             "question": question,
-            "answer": answer_str,
+            "answer": answer_str,  # hmm
             "prompt": prompt,
             "choices": choices,
             "image_path": str(image_path),

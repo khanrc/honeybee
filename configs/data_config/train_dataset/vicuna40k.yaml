@@ -1,0 +1,5 @@
+vicuna40k:
+  classname: VicunaInstructDataset
+  data_cfg:
+    input_files:
+      - "./data/Vicuna/llava_v1_5_sharegpt40k.json"

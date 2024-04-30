@@ -6,8 +6,9 @@ mme:
   dataset:
     name: MMEDataset
     root: ./data/MME
+    template_name: ${data_config.template.name}
   gen_kwargs:
-    max_length: 20
+    max_new_tokens: 20
     top_k: 5
     num_beams: 1
     do_sample: False

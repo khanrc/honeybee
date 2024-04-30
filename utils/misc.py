@@ -5,8 +5,15 @@ import os
 import pickle
 
 import pandas as pd
-from PIL import Image
+from PIL import Image, ImageFile
 from transformers import logging
+
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+ImageFile.MAX_IMAGE_PIXELS = None
+Image.MAX_IMAGE_PIXELS = None
+
+COCO_ROOT = "./data/opensets_coco/images/"
 
 
 def dump(obj, path, mode=None, make_dir=True):
@@ -23,6 +30,11 @@ def dump(obj, path, mode=None, make_dir=True):
     elif mode == "json":
         with open(path, "w", encoding="utf-8") as f:
             json.dump(obj, f, indent=2)
+    elif mode =="jsonl":
+        assert isinstance(obj, list), "obj must be a list for jsonl mode"
+        lines = [json.dumps(x, ensure_ascii=False) for x in obj]
+        with open(path, "w", encoding="utf8") as f:
+            f.write("\n".join(lines))
     elif mode in ["pkl", "pickle"]:
         with open(path, "wb") as f:
             pickle.dump(obj, f)
@@ -58,9 +70,21 @@ def load(path, mode=None):
         raise ValueError(f"Unknown mode: {mode}")
 
 
+def load_image(image_path: str):
+    return Image.open(image_path).convert("RGB")
+
+
+def load_images(image_paths: list[str] | str) -> list[Image.Image]:
+    if isinstance(image_paths, str):
+        image_paths = [image_paths]
+
+    images = [load_image(image_path) for image_path in image_paths]
+    return images
+
+
 def decode_base64_to_image(base64_string):
     image_data = base64.b64decode(base64_string)
-    image = Image.open(io.BytesIO(image_data))
+    image = load_image(io.BytesIO(image_data))
     return image
 
 
@@ -81,24 +105,3 @@ class transformers_log_level:
 
     def __exit__(self, type, value, trace_back):
         logging.set_verbosity(self.orig_log_level)
-
-
-def get_num_params(model, only_trainable=False):
-    if only_trainable:
-        return sum(p.numel() for p in model.parameters() if p.requires_grad)
-    else:
-        return sum(p.numel() for p in model.parameters())
-
-
-def check_local_file(model_name_or_path):
-    """Check local file in "TRANSFORMERS_CACHE" directory
-    """
-    if "TRANSFORMERS_CACHE" not in os.environ:
-        return False, model_name_or_path
-
-    file_name = os.path.join(
-        os.environ["TRANSFORMERS_CACHE"], f"models--{model_name_or_path.replace('/', '--')}"
-    )
-    local_files_only = os.path.exists(file_name)
-    file_name = file_name if local_files_only else model_name_or_path
-    return local_files_only, file_name
