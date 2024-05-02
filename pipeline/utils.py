@@ -10,11 +10,13 @@ from torch.optim.lr_scheduler import LambdaLR
 import utils
 from utils import print_rank_0
 
+
 def get_cache_dir():
     DEFAULT_HF_HOME = "~/.cache/huggingface"
     cache_dir = os.environ.get("HF_HOME", DEFAULT_HF_HOME)
 
     return cache_dir
+
 
 def check_local_file(model_name_or_path):
     cache_dir = get_cache_dir()
