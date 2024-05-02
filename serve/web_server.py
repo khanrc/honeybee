@@ -1,4 +1,3 @@
-# Reference: https://huggingface.co/spaces/MAGAer13/mPLUG-Owl/tree/main
 import argparse
 import json
 import os
@@ -12,9 +11,6 @@ from .conversation import default_conversation
 from .gradio_css import code_highlight_css
 from .model_utils import post_process_code
 from .model_worker import Honeybee_Server
-
-from .serve_utils import add_text  # noqa: F401
-from .serve_utils import regenerate  # noqa: F401
 from .serve_utils import (
     after_process_image,
     clear_history,
@@ -266,13 +262,12 @@ pre {
 )
 
 
-def build_demo(model_name: str = "M-LLM"):
-    title_model_name = f"""<h1 align="center">{model_name} </h1>"""
-    # with gr.Blocks(title="mPLUG-Owl🦉", theme=gr.themes.Base(), css=css) as demo:
+def build_demo(model_name: str = "Honeybee"):
+    title_model_name = f"""<h1 align="center">Demo of {model_name} </h1>"""
     textbox = gr.Textbox(
         show_label=False, placeholder="Enter text and press ENTER", visible=False, container=False
     )
-    with gr.Blocks(title="M-LLM", css=css) as demo:
+    with gr.Blocks(title="Honeybee", css=css) as demo:
         state = gr.State()
 
         gr.Markdown(title_model_name)
@@ -294,6 +289,7 @@ def build_demo(model_name: str = "M-LLM"):
                 )
 
                 with gr.Accordion("Parameters", open=False, visible=False) as parameter_row:
+                    # gr.Slider(minimum, maximum, value, step, ...)
                     max_output_tokens = gr.Slider(
                         0, 1024, 512, step=64, interactive=True, label="Max output tokens"
                     )
@@ -311,7 +307,7 @@ def build_demo(model_name: str = "M-LLM"):
                     )
                     do_sample = gr.Checkbox(interactive=True, value=True, label="do_sample")
 
-                videobox = gr.Video(visible=False)  # [M-LLM] currently, we do not support video
+                videobox = gr.Video(visible=False)  # Honeybee currently, we do not support video
 
             with gr.Column(scale=6):
                 chatbot = gr.Chatbot(elem_id="chatbot", visible=False, height=1000)
@@ -354,23 +350,19 @@ def build_demo(model_name: str = "M-LLM"):
             [state] + parameter_list,
             [state, chatbot, textbox, imagebox, videobox] + btn_list,
         )
-
         clear_btn.click(
             clear_history, None, [state, chatbot, textbox, imagebox, videobox] + btn_list
         )
-
         textbox.submit(
             add_text_http_bot,
             [state, textbox, imagebox, videobox] + parameter_list,
             [state, chatbot, textbox, imagebox, videobox] + btn_list,
         )
-
         submit_btn.click(
             add_text_http_bot,
             [state, textbox, imagebox, videobox] + parameter_list,
             [state, chatbot, textbox, imagebox, videobox] + btn_list,
         )
-
         demo.load(
             load_demo,
             [url_params],

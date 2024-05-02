@@ -1,0 +1,7 @@
+coyo100m:
+  classname: PretrainWebdataset
+  data_cfg:
+    data_format: webdataset # currently, only support webdataset format, i.e., .tar extetion.
+    data_names: coyo100m
+    root: ./data/coyo
+    num_pairs: 100000000 # modify to actual number of successfully downloaded pairs

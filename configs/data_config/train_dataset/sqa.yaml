@@ -1,0 +1,7 @@
+sqa:
+  classname: SQAInstructDataset
+  data_cfg:
+    input_files:
+      - "./data/ScienceQA/llava_train_QCM-LEPA.json"
+    image_root_path: "./data/ScienceQA/images/train"
+    option: ${data_config.template.option}

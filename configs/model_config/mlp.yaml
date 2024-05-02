@@ -1,0 +1,9 @@
+projector_config:
+  projector_type: mlp
+  depth: 2
+  #
+  num_eos_tokens: 0
+  pos_emb: False
+  feature_layer_index: -2  # vision feature layer index; -1: last layer
+
+  num_query_tokens: 256

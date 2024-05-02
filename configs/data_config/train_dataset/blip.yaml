@@ -1,0 +1,7 @@
+blip:
+  classname: PretrainWebdataset
+  data_cfg:
+    data_format: webdataset # currently, only support webdataset format, i.e., .tar extetion.
+    data_names: ["blip_cc_sbu", "blip_laion"]
+    root: ./data/BLIP
+    num_pairs: [10986670, 87795279] # modify to actual number of successfully downloaded pairs 

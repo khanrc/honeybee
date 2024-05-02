@@ -1,18 +1,12 @@
-import base64
-import logging  # noqa: F401
 import sys
-from io import BytesIO
-
-import torch
-from PIL import Image
-
 sys.path.append("..")
 
+import torch
 import transformers
 
 from pipeline.interface import get_model
-
 from .model_utils import Iteratorize, Stream, post_process_output
+import utils
 
 server_error_msg = "**NETWORK ERROR DUE TO HIGH TRAFFIC. PLEASE REGENERATE OR REFRESH THIS PAGE.**"
 
@@ -62,7 +56,7 @@ class Honeybee_Server:
         no_repeat_ngram_size=2,
         do_sample=False,
         early_stopping=True,
-        **kwargs
+        **kwargs,
     ):
         generation_config = {
             "temperature": temperature,
@@ -100,7 +94,6 @@ class Honeybee_Server:
 
             with generate_with_streaming(**generate_params) as generator:
                 for output in generator:
-                    # new_tokens = len(output) - len(input_ids[0])
                     decoded_output = self.tokenizer.decode(output)
 
                     if output[-1] in [self.tokenizer.eos_token_id]:
@@ -116,7 +109,7 @@ class Honeybee_Server:
                 return_dict_in_generate=True,
                 output_scores=True,
                 max_new_tokens=max_new_tokens,
-                **generation_config
+                **generation_config,
             )
         s = generation_output.sequences[0].cpu()
         output = self.tokenizer.decode(s)
@@ -126,8 +119,9 @@ class Honeybee_Server:
         prompt = [data["text_input"]]
         images = data["images"] if len(data["images"]) > 0 else None
         if images:
-            images = [Image.open(BytesIO(base64.b64decode(image))) for image in images]
-        inputs = self.processor(text=prompt, images=images, return_tensors="pt")
+            images = [utils.decode_base64_to_image(image) for image in images]
+        inputs = self.processor(texts=prompt, images=images, return_tensors="pt")
+        print(f"   >>> preprocessed image: {inputs['pixel_values'].shape}")
 
         input_ids = inputs["input_ids"].to(self.model.device)
         if "pixel_values" in inputs:

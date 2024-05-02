@@ -2,13 +2,12 @@ import os
 
 import torch
 from peft import PeftConfig, PeftModel
-from PIL import Image
-from transformers import AutoTokenizer
-from transformers.utils.constants import OPENAI_CLIP_MEAN, OPENAI_CLIP_STD
-from pathlib import Path
 
+from honeybee import build_honeybee_tokenizer
 from honeybee.modeling_honeybee import HoneybeeForConditionalGeneration
-from honeybee.processing_honeybee import HoneybeeImageProcessor, HoneybeeProcessor
+from honeybee.processing_honeybee import HoneybeeProcessor
+from pipeline.data_utils.processors.default_processor import DefaultProcessor
+import utils
 
 
 def load_model(pretrained_ckpt, use_bf16=True, load_in_8bit=False):
@@ -22,13 +21,12 @@ def load_model(pretrained_ckpt, use_bf16=True, load_in_8bit=False):
     Returns:
         model: Honeybee Model
     """
-
     # we check whether the model is trained using PEFT
     # by checking existance of 'adapter_config.json' is in pretrained_ckpt folder.
     is_peft = os.path.exists(os.path.join(pretrained_ckpt, "adapter_config.json"))
 
     if is_peft:
-        # when using checkpoints trained using PEFT (by us)
+        # when using checkpoints trained using PEFT
         config = PeftConfig.from_pretrained(pretrained_ckpt)
         if config.base_model_name_or_path == "":
             # when pre-training, there is no definition of base_model_name_or_path
@@ -49,11 +47,12 @@ def load_model(pretrained_ckpt, use_bf16=True, load_in_8bit=False):
             torch_dtype=torch.bfloat16 if use_bf16 else torch.half,
         )
     else:
-        # when using original mllm checkpoints
         model = HoneybeeForConditionalGeneration.from_pretrained(
             pretrained_ckpt,
+            load_in_8bit=load_in_8bit,
             torch_dtype=torch.bfloat16 if use_bf16 else torch.half,
         )
+
     return model
 
 
@@ -67,32 +66,22 @@ def get_model(pretrained_ckpt, use_bf16=True, load_in_8bit=False):
 
     Returns:
         model: Honeybee Model
-        tokenizer: Honeybee (Llama) text tokenizer
+        tokenizer: Honeybee text tokenizer
         processor: Honeybee processor (including text and image)
     """
-    # Load model where base_ckpt is different when the target model is trained by PEFT
     model = load_model(pretrained_ckpt, use_bf16, load_in_8bit)
 
-    image_size = model.config.vision_config.image_size
-    num_query_tokens = model.config.num_query_tokens
-    num_eos_tokens = getattr(model.config.visual_projector_config, "num_eos_tokens", 1)
-    num_visual_tokens = num_query_tokens + num_eos_tokens
-
-    # Build processor
-    image_processor = HoneybeeImageProcessor(
-        size=image_size,
-        crop_size=image_size,
-        image_mean=OPENAI_CLIP_MEAN,
-        image_std=OPENAI_CLIP_STD,
+    # Load processor and tokenizer
+    image_processor = DefaultProcessor(
+        image_size=model.config.vision_config.image_size,
+        image_mean=model.config.vision_config.image_mean,
+        image_std=model.config.vision_config.image_std,
     )
-    # Load tokenizer (LlamaTokenizer)
-    tokenizer_ckpt = model.config.lm_config.pretrained_tokenizer_name_or_path
-    tokenizer = AutoTokenizer.from_pretrained(tokenizer_ckpt, use_fast=False)
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.unk_token
-    processor = HoneybeeProcessor(
-        image_processor, tokenizer, num_visual_token=num_visual_tokens
+    tokenizer = build_honeybee_tokenizer(
+        model.config.lm_config.pretrained_tokenizer_name_or_path,
+        num_visual_tokens=model.config.num_visual_tokens,
     )
+    processor = HoneybeeProcessor(image_processor, tokenizer)
 
     return model, tokenizer, processor
 
@@ -114,7 +103,7 @@ def do_generate(
         sentence (str): Generated sentence.
     """
     if image_list:
-        images = [Image.open(_) for _ in image_list]
+        image_list = utils.load_images(image_list)
     else:
         images = None
     inputs = processor(text=prompts, images=images)

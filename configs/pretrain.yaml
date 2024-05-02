@@ -1,0 +1,34 @@
+defaults:
+  - default
+  - _self_
+  - tasks:
+    - mmb
+    - sqa
+    - mme
+  - data_config: pt_default  # COYO + BLIP
+
+train:
+  mode: pt
+  module_to_update:
+    - abstractor
+
+trainer_kwargs:
+  per_device_train_batch_size: 32  # 8 gpus -> 256
+  gradient_accumulation_steps: 1
+  learning_rate: 1e-4
+  max_grad_norm: 1.0
+  weight_decay: 0.01
+  warmup_steps: 2000
+  max_steps: 50000
+  lr_scheduler_type: cosine
+  eval_steps: 50000
+  min_lr: 1e-5
+
+lora_config:
+  use_lora: False
+  target_modules: '.*language_model.*\.(q_proj|v_proj)'
+  inference_mode: False
+  lora_r: 8
+  lora_alpha: 32
+  lora_dropout: 0.05
+  modules_to_save: ${train.module_to_update}

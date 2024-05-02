@@ -7,29 +7,18 @@ from tasks.sqa.calc_score import SQAMetric
 
 
 class SQAScore(TaskScore):
-    summary_targets = [
-        'acc_natural', 'acc_social', 'acc_language',
-        'acc_has_text', 'acc_has_image', 'acc_no_context',
-        'acc_grade_1_6', 'acc_grade_7_12', 'acc_average',
-    ]
-
     def get_summary(self, max_level=1):
-        summary_dict = {}
-        for k, v in self.scores.items():
-            if k in self.summary_targets:
-                summary_dict[k] = v
-        return summary_dict
+        return {"acc": self.scores["acc"]}
 
     def dumps(self):
         tb = prettytable.PrettyTable()
-        tb.field_names = ["SQA Tasks", "Acc"]
+        tb.field_names = list(self.scores.keys())
         tb.float_format = ".2"
         total_scores = []
-        for key, value in self.scores.items():
-            is_divider = True if key == "acc_average" else False
-            tb.add_row([key, value], divider=is_divider)
+        for _, value in self.scores.items():
+            total_scores.append(value)
+        tb.add_row(total_scores, divider=True)
 
-        tb.align["Tasks"] = "l"
         return tb.get_string()
 
 

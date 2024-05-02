@@ -1,0 +1,12 @@
+refcocop:
+  classname: RefExpLocDataset
+  data_cfg:
+    meta_root_path: "./data/refcoco/annotations"
+    image_root_path: "./data/opensets_coco/images/train2014"
+    datanames:   # list that can contain refcoco, refcoco+, refcocog
+      - refcoco+
+    nturn: 1  # number of QA pairs per image
+    bbox_coord_style: ${data_config.bbox_coord_style}
+    dedup:
+      key: bbox
+      whitelist: all  # all indicates no deduplication

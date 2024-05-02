@@ -7,4 +7,4 @@ class CustomCLIP(CLIPVisionModel, VisualEncoderMixin):
         return self.vision_model.embeddings.class_embedding.data.dtype
 
     def get_num_tokens(self):
-        return self.vision_model.embeddings.num_positions  # this includes cls token
+        return self.vision_model.embeddings.num_positions - 1  # -1: excluding cls token

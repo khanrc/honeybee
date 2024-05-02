@@ -1,0 +1,10 @@
+ocrvqa:
+  classname: OCRVQATrainDataset
+  data_cfg:
+    input_path: "./data/OCRVQA/dataset.json"
+    image_root_path: "./data/OCRVQA/images"
+    split: train
+    nturn: 10  # number of QA pairs per image
+    dedup:
+      key: answer
+      whitelist: all  # all indicates no deduplication

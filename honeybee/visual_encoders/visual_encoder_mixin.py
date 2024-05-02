@@ -13,12 +13,25 @@ class VisualEncoderMixin:
         raise NotImplementedError()
 
     def get_num_tokens(self) -> int:
-        """The number of ouptut tokens. Mostly, num_patches + 1 (for cls token)"""
+        """The number of ouptut tokens. Mostly, num_patches (without cls token)"""
         raise NotImplementedError()
 
     def has_cls_token(self) -> bool:
         """Whether the encoder has cls token or not. Default: True"""
         return True
+
+    def freeze_blocks(self, n: int):
+        """Freeze the first n blocks of the encoder"""
+        raise NotImplementedError()
+
+    def postprocess_for_projector(self, visual_features):
+        """Perform any post-processing (e.g., cls feature removal) for visual features
+        before submitting to projector.
+        """
+        if self.has_cls_token():
+            # defaultly, we assume cls token is located at 0-index if exists.
+            visual_features = visual_features[:, 1:] if visual_features.ndim == 3 else visual_features[:, :, 1:]
+        return visual_features
 
 
 @dataclass

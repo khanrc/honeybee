@@ -1,0 +1,14 @@
+touchstone:
+  name: LlavaBenchTask
+  dataloader:
+    batch_size: 8
+    num_workers: 8
+  dataset:
+    name: LlavaBenchDataset
+    root: ./data/llava-bench-in-the-wild
+  gen_kwargs:
+    max_new_tokens: 1024
+    top_k: 5
+    num_beams: 1
+    do_sample: False
+    use_cache: True

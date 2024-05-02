@@ -1,0 +1,12 @@
+projector_config:
+  projector_type: c-abs
+  depth: 3
+  mlp_depth: 2
+  hidden_size: 1024
+  num_eos_tokens: 0
+  pos_emb: True
+  feature_layer_index: -1  # vision feature layer index; -1: last layer
+  #
+  prenorm: False  # if True, LN is applied to vision features
+
+  num_query_tokens: 144

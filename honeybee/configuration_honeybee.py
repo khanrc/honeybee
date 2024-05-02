@@ -1,190 +1,142 @@
-import copy
-import os
-from typing import Union
-
+"""Honeybee configuration"""
+import timm
 from transformers import AutoConfig, CLIPVisionConfig
 from transformers.configuration_utils import PretrainedConfig
-from transformers.models.auto.modeling_auto import MODEL_FOR_CAUSAL_LM_MAPPING_NAMES
 from transformers.models.deformable_detr import DeformableDetrConfig
 from transformers.utils import logging
+from transformers.utils.constants import OPENAI_CLIP_MEAN, OPENAI_CLIP_STD
 
-from pipeline.config import AttrDict
-from utils import check_local_file
+from pipeline.utils import check_local_file
 
 logger = logging.get_logger(__name__)
 
 
-class HoneybeeVisualProjectorConfig(PretrainedConfig):
-    model_type = "mllm_visual_projector"
-
+class HoneybeeVisionConfig(PretrainedConfig):
     def __init__(
         self,
-        projector_type: str = "resampler",
-        hidden_size: int = 1024,  #
-        num_hidden_layers: int = 6,  #
-        num_attention_heads: int = 16,  #
-        intermediate_size: int = 4096,  #
-        attention_probs_dropout_prob: float = 0.1,  #
-        initializer_range: float = 0.02,
-        layer_norm_eps: float = 1e-6,  #
-        encoder_hidden_size: int = 1024,  # This will be overwritten by vision_model's hidden_size
-        pos_emb=False,
-        feature_layer_index=-1,  # vision feature layer index; -1: last layer
-        num_eos_tokens=1,
-        use_cls=True,
-        prenorm=False,
+        pretrained_vision_name_or_path: str = "openai/clip-vit-large-patch14",
+        image_size: int = 224,
+        image_mean = OPENAI_CLIP_MEAN,
+        image_std = OPENAI_CLIP_STD,
+        hidden_size: int = None,
+        encoder_type: str = "openai.clip",
+        **kwargs,
+    ):
+        assert hidden_size is not None, "hidden_size is required for HoneybeeVisionConfig"
+        super().__init__(**kwargs)
+        self.pretrained_vision_name_or_path = pretrained_vision_name_or_path
+        self.image_size = image_size
+        self.image_mean = image_mean
+        self.image_std = image_std
+        self.hidden_size = hidden_size
+        self.encoder_type = encoder_type
+
+    @staticmethod
+    def from_exp_config(vision_config: dict):
+        """Build MLLVisionConfig from exp config (hydra conifg)
+        """
+        pretrained_vision_name_or_path = vision_config.get("pretrained_vision_name_or_path")
+        if pretrained_vision_name_or_path is None:
+            raise ValueError("pretrained_vision_name_or_path is required for vision config.")
+
+        vm_local_files_only, vm_file_name = check_local_file(pretrained_vision_name_or_path)
+        encoder_type = vision_config["encoder_type"]
+        if encoder_type == "openai.clip":
+            v_enc_config = CLIPVisionConfig.from_pretrained(
+                vm_file_name,
+                local_files_only=vm_local_files_only,
+            )
+            v_enc_config = v_enc_config.to_dict()
+            if "encoder_type" not in v_enc_config:  # for eval on previously trained models
+                v_enc_config["encoder_type"] = encoder_type
+        else:
+            raise NotImplementedError()
+
+        v_enc_config.update(vision_config)
+        v_enc_config = HoneybeeVisionConfig(**v_enc_config)
+
+        return v_enc_config
+
+
+class HoneybeeVisualProjectorConfig(PretrainedConfig):
+    def __init__(
+        self,
+        projector_type: str = "c-abs",
+        num_eos_tokens: int = 0,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.projector_type = projector_type
-        self.hidden_size = hidden_size
-        self.num_hidden_layers = num_hidden_layers
-        self.num_attention_heads = num_attention_heads
-        self.intermediate_size = intermediate_size
-        self.attention_probs_dropout_prob = attention_probs_dropout_prob
-        self.initializer_range = initializer_range
-        self.layer_norm_eps = layer_norm_eps
-        self.encoder_hidden_size = encoder_hidden_size
-
-        self.pos_emb = pos_emb
-        self.feature_layer_index = feature_layer_index
         self.num_eos_tokens = num_eos_tokens
-        self.use_cls = use_cls
-        self.prenorm = prenorm
 
-    @classmethod
-    def from_pretrained(
-        cls, pretrained_model_name_or_path: Union[str, os.PathLike], **kwargs
-    ) -> "PretrainedConfig":
-        config_dict, kwargs = cls.get_config_dict(pretrained_model_name_or_path, **kwargs)
+    @staticmethod
+    def from_exp_config(
+        projector_config: dict,
+        vision_hidden_size: int,
+        lm_hidden_size: int,
+    ):
+        if projector_config["projector_type"] == "d-abs":
+            projector_config = DeformableDetrConfig(**projector_config).to_dict()
 
-        # get the visual_projector config dict if we are loading from HoneybeeConfig
-        if config_dict.get("model_type") == "mllm":
-            config_dict = config_dict["projector_config"]
+        # projector has three inter-module configs:
+        # 1) encoder_hidden_size (hidden size of vision model)
+        # 2) output_hidden_size (hidden size of LLM)
+        # the number of query tokens  (total num_visual_tokens = num_query_tokens + num_eos_tokens)
+        inter_module_configs = {
+            "encoder_hidden_size": vision_hidden_size,
+            "output_hidden_size": lm_hidden_size,
+        }
 
-        if (
-            "model_type" in config_dict
-            and hasattr(cls, "model_type")
-            and config_dict["model_type"] != cls.model_type
-        ):
-            logger.warning(
-                f"You are using a model of type {config_dict['model_type']} to instantiate a model of type "
-                f"{cls.model_type}. This is not supported for all configurations of models and can yield errors."
-            )
+        projector_config = HoneybeeVisualProjectorConfig(
+            **(projector_config | inter_module_configs),
+        )
 
-        return cls.from_dict(config_dict, **kwargs)
+        return projector_config
 
 
 class HoneybeeLanguageConfig(PretrainedConfig):
-    model_type = "mllm_lm"
-
     def __init__(
         self,
-        pretrained_lm_name_or_path: str = "llama-2-7b-chat",
-        delta_model_name_or_path: str = None,
-        pretrained_tokenizer_name_or_path: str = "/data/project_ai_cad_162/cxr-llm/hf_models/hf_llama2/tokenize",
+        pretrained_lm_name_or_path: str = "llama-2-7b",
+        pretrained_tokenizer_name_or_path: str | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.pretrained_lm_name_or_path = pretrained_lm_name_or_path
-        self.delta_model_name_or_path = delta_model_name_or_path
-        self.pretrained_tokenizer_name_or_path = pretrained_tokenizer_name_or_path
-
-    @classmethod
-    def from_pretrained(
-        cls, pretrained_model_name_or_path: Union[str, os.PathLike], **kwargs
-    ) -> "PretrainedConfig":
-        config_dict, kwargs = cls.get_config_dict(pretrained_model_name_or_path, **kwargs)
-
-        # get the visual_projector config dict if we are loading from HoneybeeConfig
-        if config_dict.get("model_type") == "mllm":
-            config_dict = config_dict["lm_config"]
-
-        if (
-            "model_type" in config_dict
-            and hasattr(cls, "model_type")
-            and config_dict["model_type"] != cls.model_type
-        ):
-            logger.warning(
-                f"You are using a model of type {config_dict['model_type']} to instantiate a model of type "
-                f"{cls.model_type}. This is not supported for all configurations of models and can yield errors."
-            )
-
-        return cls.from_dict(config_dict, **kwargs)
+        self.pretrained_tokenizer_name_or_path = (
+            pretrained_tokenizer_name_or_path or pretrained_lm_name_or_path
+        )
 
 
 class HoneybeeConfig(PretrainedConfig):
-    model_type = "mllm"
     is_composition = True
 
     def __init__(
         self,
-        vision_config: dict | None = None,
-        visual_projector_config: dict | None = None,
-        num_query_tokens: int = 64,
-        lm_config: dict | None = None,
+        vision_config: dict,
+        projector_config: dict,
+        lm_config: dict,
         **kwargs,
     ):
+        """Honeybee model config.
+
+        This init function is called with two different scenario:
+        - in PT, explicitly called in train.py, with **hydra exp config**.
+        - in FT, implicitly called in from_pretrained, with **hf model config**.
+
+        Thus, we need to address both cases.
+        """
         super().__init__(**kwargs)
-        pretrained_vision_name_or_path = vision_config.get("pretrained_vision_name_or_path")
-        if pretrained_vision_name_or_path is None:
-            # first check whether it is old checkpoint
-            if "pretrained_vision_name_or_path" in kwargs:
-                # old checkpoint (before introducing EVA)
-                pretrained_vision_name_or_path = kwargs["pretrained_vision_name_or_path"]
-                vision_config["pretrained_vision_name_or_path"] = pretrained_vision_name_or_path
-                logger.info(
-                    "Old checkpoint is detected. Use pretrained_vision_name_or_path from kwargs."
-                )
-            else:
-                # we use CLIP ViT-L/14-224 by default
-                pretrained_vision_name_or_path = "openai/clip-vit-large-patch14"
-                vision_config["pretrained_vision_name_or_path"] = pretrained_vision_name_or_path
-                logger.info(
-                    f"We use default pretrained vision model: {pretrained_vision_name_or_path}"
-                )
 
-        if vision_config is None:
-            vision_config = {}
-            logger.info("vision_config is None. ")
+        # Note) three inter-module configs (vision -> projector or lm -> projector):
+        # 1) vision_config.hidden_size -> projector_config.encoder_hidden_size
+        # 2) text_config.hidden_size -> projector_config.output_hidden_size
+        # the number of query tokens (total num_visual_tokens = num_query_tokens + num_eos_tokens)
 
-        if visual_projector_config is None:
-            visual_projector_config = {}
-            logger.info("projector_config is None. ")
+        # Vision config
+        self.vision_config = HoneybeeVisionConfig.from_exp_config(vision_config)
 
-        if lm_config is None:
-            # we use LLAMA-2 7b by default
-            lm_config = {}
-            logger.info("We use default pretrained lm: LLaMA-2-chat 7B")
-
-        # config for vision tower (CLIP)
-        # Required key-value of v_enc_config: hidden_size
-        vm_local_files_only, vm_file_name = check_local_file(pretrained_vision_name_or_path)
-        encoder_type = vision_config.get("encoder_type", "openai.clip")
-        v_enc_config = CLIPVisionConfig.from_pretrained(
-            vm_file_name,
-            local_files_only=vm_local_files_only,
-        )
-        v_enc_config = v_enc_config.to_dict()
-        if "encoder_type" not in v_enc_config:
-            v_enc_config["encoder_type"] = encoder_type
-
-        v_enc_config.update(vision_config)
-        v_enc_config = AttrDict.from_nested_dicts(v_enc_config)
-        self.vision_config = v_enc_config
-
-        # config for projector
-        self.num_query_tokens = num_query_tokens
-        if visual_projector_config["projector_type"].startswith("d-abs"):
-            self.visual_projector_config = DeformableDetrConfig()
-            # overwrite manual arguments
-            self.visual_projector_config.update(visual_projector_config)
-        else:
-            self.visual_projector_config = HoneybeeVisualProjectorConfig(**visual_projector_config)
-        # overwrite visual_projector.encoder_hidden_size with vision_model.hidden_size
-        self.visual_projector_config.encoder_hidden_size = self.vision_config.hidden_size
-
-        # config for language tower (llama-2)
+        # LM config (from exp config)
         self.lm_config = HoneybeeLanguageConfig(**lm_config)
         lm_local_files_only, lm_file_name = check_local_file(
             self.lm_config.pretrained_lm_name_or_path
@@ -194,18 +146,21 @@ class HoneybeeConfig(PretrainedConfig):
             local_files_only=lm_local_files_only,
         )
 
-        self.tie_word_embeddings = self.text_config.tie_word_embeddings
-        self.is_encoder_decoder = self.text_config.is_encoder_decoder
-
-        self.use_decoder_only_language_model = (
-            self.text_config.model_type in MODEL_FOR_CAUSAL_LM_MAPPING_NAMES
+        # Projector config
+        self.projector_config = HoneybeeVisualProjectorConfig.from_exp_config(
+            projector_config,
+            vision_hidden_size=self.vision_config.hidden_size,
+            lm_hidden_size=self.text_config.hidden_size,
         )
-        self.initializer_factor = 1.0
-        self.initializer_range = 0.02
 
-        for attr, value in self.text_config.attribute_map.items():
-            if not hasattr(self, attr):
-                setattr(self, attr, value)
+    @property
+    def num_visual_tokens(self):
+        return self.projector_config.num_query_tokens + self.projector_config.num_eos_tokens
+
+    @property
+    def hidden_size(self):
+        # hidden_size is required for deepspeed auto config
+        return self.text_config.hidden_size
 
     def to_dict(self):
         """
@@ -214,10 +169,22 @@ class HoneybeeConfig(PretrainedConfig):
         Returns:
             `Dict[str, any]`: Dictionary of all the attributes that make up this configuration instance,
         """
-        output = copy.deepcopy(self.__dict__)
-        output["vision_config"] = self.vision_config
-        output["visual_projector_config"] = self.visual_projector_config.to_dict()
-        output["lm_config"] = self.lm_config.to_dict()
-        output["text_config"] = self.text_config.to_dict()
-        output["model_type"] = self.__class__.model_type
+        output = super().to_dict()
+        for k, v in output.items():
+            if isinstance(v, PretrainedConfig):
+                output[k] = v.to_dict()
+
         return output
+    
+    @classmethod
+    def from_dict(cls, config_dict, **kwargs):
+        # update old config
+        if "hidden_size" in config_dict:
+            config_dict.pop("hidden_size")
+
+        if "visual_projector_config" in config_dict:
+            config_dict["projector_config"] = config_dict.pop("visual_projector_config")
+            config_dict["projector_config"].pop("encoder_hidden_size")
+            config_dict["projector_config"]["num_query_tokens"] = config_dict.pop("num_query_tokens")
+
+        return super().from_dict(config_dict, **kwargs)

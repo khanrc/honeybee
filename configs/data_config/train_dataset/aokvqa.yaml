@@ -1,0 +1,8 @@
+aokvqa:
+  classname: AOKVQADataset
+  data_cfg:
+    root: "./data/A-OKVQA"
+    image_root: "./data/opensets_coco/images/"
+    split: train
+    nturn: 1  # number of QA pairs per image
+    option: ${data_config.template.option}

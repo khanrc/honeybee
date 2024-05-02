@@ -1,10 +1,6 @@
-"""Modified from the official score calculation code:
-    https://github.com/lupantech/ScienceQA/blob/main/tools/evaluate_acc.py
-"""
 import json
 import os
 import random
-import pandas as pd
 
 _OPTIONS = ["A", "B", "C", "D", "E"]
 
@@ -15,79 +11,111 @@ class SQAMetric:
         split,
         annotation_base_dir,
     ):
+        with open(os.path.join(annotation_base_dir, "pid_splits.json")) as f:
+            self.split_indices = json.load(f)[split]
+
         with open(os.path.join(annotation_base_dir, "problems.json")) as f:
             self.problems = json.load(f)
 
-    def get_acc_with_condition(self, res_pd, key, values):
-        if isinstance(values, list):
-            total_pd = res_pd[res_pd[key].isin(values)]
-        else:
-            total_pd = res_pd[res_pd[key] == values]
-        correct_pd = total_pd[total_pd['true_false'] == True]
-        if len(total_pd) == 0:
-            return -1
-        acc = len(correct_pd) / len(total_pd) * 100
-        return acc
-
     def get_pred_idx(self, prediction, choices, options):
         """
-        Get the index (e.g. 2) from the prediction (e.g. 'C') with additional random guess.
-        From llava: https://github.com/haotian-liu/LLaVA/blob/82fc5e0e5f4393a4c26851fa32c69ab37ea3b146/llava/eval/eval_science_qa.py#L28 
+        Get the index (e.g. 2) from the prediction (e.g. 'C')
         """
         if prediction in options[: len(choices)]:
             return options.index(prediction)
         else:
             return random.choice(range(len(choices)))
 
+    def parse_answer(self, pred_text, choices, options):
+        answer = "FAILED"
+        for i, cand in enumerate(choices):
+            if cand in pred_text:
+                answer = options[i]
+        return answer  # return {'A', ..., 'E', or FAILED}
+
+    def compute_metric(self, gts, preds):
+        assert len(gts) == len(preds)
+
+        return 0
+
     def process_result(self, results_dic):
-        # read result file
-        results_by_qid = {}
-        for item in results_dic.values():
-            results_by_qid[item['question_id']] = item
-        num = len(results_by_qid)
-        assert num == 4241
+        results = {"correct": [], "incorrect": [], "text": [], "image": []}
+        sqa_results = {}  # noqa: SIM904
+        sqa_results["acc"] = None
+        sqa_results["correct"] = None
+        sqa_results["count"] = None
+        sqa_results["results"] = {}
+        sqa_results["outputs"] = {}
 
-        # construct pandas for meta data
-        sqa_pd = pd.DataFrame(self.problems).T
-        res_pd = sqa_pd[sqa_pd['split'] == 'test']  # test set
+        predictions = {pred["question_id"]: pred for pred in results_dic.values()}
+        split_problems = {idx: self.problems[idx] for idx in self.split_indices}
+        for prob_id, prob in split_problems.items():
+            if prob_id not in predictions:
+                continue
+            pred = predictions[prob_id]
+            pred_text = pred["pred"]
+            # parse pred_test to the target answer style
+            mapping = [("(", ""), (")", ""), (".", "")]
+            for k, v in mapping:
+                pred_text = pred_text.replace(k, v)
 
-        # update data
-        for index, row in res_pd.iterrows():
+            if len(pred_text) == 1:
+                answer = pred_text[0]  # 'A', 'B', ...
+            else:
+                answer = self.parse_answer(pred_text, prob["choices"], _OPTIONS)
 
-            res_pd.loc[index, 'no_context'] = True if (not row['hint'] and not row['image']) else False
-            res_pd.loc[index, 'has_text'] = True if row['hint'] else False
-            res_pd.loc[index, 'has_image'] = True if row['image'] else False
-            res_pd.loc[index, 'has_text_image'] = True if (row['hint'] and row['image']) else False
+            pred_idx = self.get_pred_idx(answer, prob["choices"], _OPTIONS)
 
-            label = row['answer']
-            pred = self.get_pred_idx(results_by_qid[index]['pred'], row.choices, _OPTIONS)
-            res_pd.loc[index, 'pred'] = pred
-            res_pd.loc[index, 'true_false'] = (label == pred)
+            analysis = {
+                "question_id": prob_id,
+                "parsed_ans": answer,
+                "ground_truth": _OPTIONS[prob["answer"]],
+                "question": pred["prompt"],
+                "pred": pred_text,
+                "is_multimodal": "<image>" in pred["prompt"],
+            }
 
-        # accuracy scores
-        acc_average = len(res_pd[res_pd['true_false'] == True]) * 100 / num
+            sqa_results["results"][prob_id] = self.get_pred_idx(answer, prob["choices"], _OPTIONS)
+            sqa_results["outputs"][prob_id] = pred_text
 
-        scores = {
-            'acc_natural':
-            self.get_acc_with_condition(res_pd, 'subject', 'natural science'),
-            'acc_social':
-            self.get_acc_with_condition(res_pd, 'subject', 'social science'),
-            'acc_language':
-            self.get_acc_with_condition(res_pd, 'subject', 'language science'),
-            'acc_has_text':
-            self.get_acc_with_condition(res_pd, 'has_text', True),
-            'acc_has_image':
-            self.get_acc_with_condition(res_pd, 'has_image', True),
-            'acc_no_context':
-            self.get_acc_with_condition(res_pd, 'no_context', True),
-            'acc_grade_1_6':
-            self.get_acc_with_condition(res_pd, 'grade', ['grade1', 'grade2', 'grade3', 'grade4', 'grade5', 'grade6']),
-            'acc_grade_7_12':
-            self.get_acc_with_condition(res_pd, 'grade', ['grade7', 'grade8', 'grade9', 'grade10', 'grade11', 'grade12']),
-            'acc_average': acc_average,
+            is_image = not (pred["image_path"] is None or pred["image_path"] == "None")
+            correct = pred_idx == prob["answer"]
+            if is_image:
+                results["image"].append(correct)
+            else:
+                results["text"].append(correct)
+
+            if correct:
+                results["correct"].append(analysis)
+            else:
+                results["incorrect"].append(analysis)
+
+        correct = len(results["correct"])
+        total = len(results["correct"]) + len(results["incorrect"])
+        print(f"Total: {total}, Correct: {correct}, Accuracy: {correct / total * 100:.2f}%")
+
+        sqa_results["acc"] = correct / total * 100
+        sqa_results["correct"] = correct
+        sqa_results["count"] = total
+
+        # image/text
+        n_image = len(results["image"])
+        image_correct = sum(results["image"])
+        image_acc = image_correct / n_image * 100 if n_image > 0 else 0
+        print(f"[Image] Total: {n_image}, Correct: {image_correct}, Accuracy: {image_acc:.2f}%")
+        n_text = len(results["text"])
+        text_correct = sum(results["text"])
+        text_acc = text_correct / n_text * 100 if n_text > 0 else 0
+        print(f"[Text] Total: {n_text}, Correct: {text_correct}, Accuracy: {text_acc:.2f}%")
+        assert n_image + n_text == total
+
+        result_acc = {
+            "acc": sqa_results["acc"],
+            "correct": sqa_results["correct"],
+            "incorrect": len(results["incorrect"]),
+            "count": sqa_results["count"],
+            "acc-image": image_acc,
+            "acc-text": text_acc,
         }
-        topics = ['punctuation', 'literacy-in-science', 'verbs', 'pronouns', 'civics', 'culture', 'word-study', 'economics', 'physics', 'units-and-measurement', 'science-and-engineering-practices', 'reading-comprehension', 'global-studies', 'grammar', 'figurative-language', 'us-history', 'writing-strategies', 'world-history', 'reference-skills', 'biology', 'earth-science', 'phonological-awareness', 'capitalization', 'chemistry', 'vocabulary', 'geography']
-        for t in topics:
-            scores['acc_' + t] = self.get_acc_with_condition(res_pd, 'topic', t)
 
-        return scores
+        return result_acc

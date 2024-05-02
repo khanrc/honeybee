@@ -7,7 +7,7 @@ owl:
     name: OWLDataset
     root: ./data/OwlEval
   gen_kwargs:
-    max_length: 512
+    max_new_tokens: 512
     top_k: 5
     num_beams: 1
     do_sample: False

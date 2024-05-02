@@ -1,0 +1,39 @@
+defaults:
+  - default
+  - _self_
+  - tasks:
+    - mmb
+    - sqa
+    - mme
+    - seed
+  - data_config: ft_default
+
+pretrained_ckpt: null
+load_model_config_from_ckpt: True  # Caution: config interpolation is not supported
+
+train:
+  mode: sft
+  module_to_update:
+    - abstractor
+    - language_model
+
+trainer_kwargs:
+  per_device_train_batch_size: 16  # 8 gpus -> 128
+  gradient_accumulation_steps: 1
+  learning_rate: 2e-5
+  max_grad_norm: 1.0
+  weight_decay: 0.0001
+  warmup_steps: 150
+  max_steps: 4000 # short schedule: 4000, long schedule: 10000
+  lr_scheduler_type: cosine
+  eval_steps: 500
+  min_lr: 1e-6
+
+lora_config:
+  use_lora: False
+  target_modules: '.*language_model.*\.(q_proj|v_proj)'
+  inference_mode: False
+  lora_r: 8
+  lora_alpha: 32
+  lora_dropout: 0.05
+  modules_to_save: ${train.module_to_update}

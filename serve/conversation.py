@@ -1,19 +1,23 @@
 import dataclasses
-from enum import auto, Enum
-from typing import List, Tuple
-import os
-from decord import VideoReader
+from enum import Enum, auto
+from typing import List
+
 import numpy as np
+from decord import VideoReader
 from PIL import Image
+
 
 class SeparatorStyle(Enum):
     """Different separator style."""
+
     SINGLE = auto()
     TWO = auto()
+
 
 @dataclasses.dataclass
 class Conversation:
     """A class that keeps all conversation history."""
+
     system: str
     roles: List[str]
     messages: List[List[str]]
@@ -58,30 +62,28 @@ class Conversation:
     def get_index(self, num_frames, num_segments):
         seg_size = float(num_frames - 1) / num_segments
         start = int(seg_size / 2)
-        offsets = np.array([
-            start + int(np.round(seg_size * idx)) for idx in range(num_segments)
-        ])
+        offsets = np.array([start + int(np.round(seg_size * idx)) for idx in range(num_segments)])
         return offsets
 
     def load_video(self, path, num_frames=4):
         vr = VideoReader(path, height=224, width=224)
-        total_frames = len(vr)
-        frame_indices = self.get_index(total_frames, num_frames)
-        images_group = list()
+
+        frame_indices = range(len(vr))  # we use all frames
+        images_group = []
         for frame_index in frame_indices:
-            img = Image.fromarray(vr[frame_index].asnumpy()).convert('RGB')
+            img = Image.fromarray(vr[frame_index].asnumpy()).convert("RGB")
             images_group.append(img)
         return images_group
 
     def get_images(self, log_dir=None):
-        cur_dir = os.path.dirname(os.path.abspath(__file__))
         images = []
         k = 0
-        for i, (role, msg) in enumerate(self.messages[self.offset:]):
-            if i % 2 == 0:
-                if type(msg) is tuple:
+        for i, (role, msg) in enumerate(self.messages[self.offset :]):  # noqa: B007
+            if i % 2 == 0:  # noqa: SIM102
+                if type(msg) is tuple:  # noqa: SIM102
                     import base64
                     from io import BytesIO
+
                     msg, image = msg
                     image_tmp = image
                     if isinstance(image_tmp, str):
@@ -91,28 +93,29 @@ class Conversation:
 
                     for image in image_pils:
                         buffered = BytesIO()
-                        
+
                         image.save(buffered, format="JPEG")
-                        
+
                         img_str = base64.b64encode(buffered.getvalue()).decode()
                         images.append(img_str)
                     k += 1
         return images
-    
+
     def to_gradio_chatbot(self):
         ret = []
-        for i, (role, msg) in enumerate(self.messages[self.offset:]):
+        for i, (role, msg) in enumerate(self.messages[self.offset :]):  # noqa: B007
             if i % 2 == 0:
                 if type(msg) is tuple:
                     import base64
                     from io import BytesIO
+
                     msg, image = msg
                     if isinstance(image, str):
-                        with open(image, 'rb') as f:
+                        with open(image, "rb") as f:
                             data = f.read()
                         img_b64_str = base64.b64encode(data).decode()
-                        image_str = f'<video src="data:video/mp4;base64,{img_b64_str}" controls width="426" height="240"></video>'
-                        msg = msg.replace('\n'.join(['<image>']*4), image_str)
+                        img_str = f'<video src="data:video/mp4;base64,{img_b64_str}" controls width="426" height="240"></video>'
+                        msg = msg.replace("<image>", img_str)
                     else:
                         max_hw, min_hw = max(image.size), min(image.size)
                         aspect_ratio = max_hw / min_hw
@@ -130,12 +133,12 @@ class Conversation:
                         image.save(buffered, format="JPEG")
                         img_b64_str = base64.b64encode(buffered.getvalue()).decode()
                         img_str = f'<img src="data:image/png;base64,{img_b64_str}" alt="user upload image" />'
-                        msg = msg.replace('<image>', img_str)
+                        msg = msg.replace("<image>", img_str)
                 ret.append([msg, None])
             else:
                 ret[-1][-1] = msg
         return ret
-    
+
     def copy(self):
         return Conversation(
             system=self.system,
@@ -144,7 +147,8 @@ class Conversation:
             offset=self.offset,
             sep_style=self.sep_style,
             sep=self.sep,
-            sep2=self.sep2)
+            sep2=self.sep2,
+        )
 
     def dict(self):
         if len(self.get_images()) > 0:
@@ -165,7 +169,7 @@ class Conversation:
             "sep": self.sep,
             "sep2": self.sep2,
         }
-        
+
 default_conversation = Conversation(
     system="The following is a conversation between a curious human and assistant AI. The assistant AI gives helpful, detailed, and polite answers to the human's questions.",
     roles=("Human", "AI"),

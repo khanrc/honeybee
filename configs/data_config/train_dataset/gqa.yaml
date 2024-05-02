@@ -1,0 +1,9 @@
+gqa:
+  classname: GQADataset
+  data_cfg:
+    root: "./data/GQA"
+    split: train
+    nturn: 10  # number of QA pairs per image
+    dedup:
+      key: answer
+      whitelist: null  # all indicates no deduplication

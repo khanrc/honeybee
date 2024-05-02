@@ -1,0 +1,18 @@
+defaults:
+  - _self_
+  - train_dataset:
+    - blip
+    - coyo100m
+  - processors: default
+
+truncation_on_batchify: True
+train_cfg:
+  max_length: 1024
+  sampling_weights: [0.5, 0.5]
+
+template:
+  name: "honeybee_default"
+  option:
+    shuffle: True
+    aug_idx_style: False
+    include_answer_str: False

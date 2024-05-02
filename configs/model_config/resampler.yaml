@@ -1,0 +1,14 @@
+projector_config:
+  projector_type: resampler
+  hidden_size: 1024
+  num_hidden_layers: 6
+  num_attention_heads: 16
+  intermediate_size: 4096  # default 4096?
+  attention_probs_dropout_prob: 0.1
+  initializer_range: 0.02
+  layer_norm_eps: 1e-06
+  #
+  pos_emb: False
+  feature_layer_index: -1  # vision feature layer index; -1: last layer
+  num_eos_tokens: 0
+  num_query_tokens: 64

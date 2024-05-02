@@ -1,0 +1,14 @@
+mm_vet:
+  name: MMVetTask
+  dataloader:
+    batch_size: 8
+    num_workers: 8
+  dataset:
+    name: MMVetDataset
+    root: ./data/mm_vet
+  gen_kwargs:
+    max_new_tokens: 1024
+    top_k: 5
+    num_beams: 1
+    do_sample: False
+    use_cache: True

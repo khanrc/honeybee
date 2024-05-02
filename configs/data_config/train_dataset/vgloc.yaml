@@ -1,0 +1,10 @@
+vgloc:
+  classname: VGLocDataset
+  data_cfg:
+    meta_root_path: "./data/VisualGenome/metadata"
+    image_root_path: "./data/VisualGenome/images"
+    nturn: 1  # number of QA pairs per image
+    bbox_coord_style: ${data_config.bbox_coord_style}
+    dedup:
+      key: bbox
+      whitelist: all  # all indicates no deduplication

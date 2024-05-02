@@ -1,5 +1,4 @@
 from pathlib import Path
-from PIL import Image
 from tasks.base_dataset import TaskDataset, Example
 import utils
 
@@ -40,7 +39,7 @@ def load_subset(dir_path):
 
 
 class MMEDataset(TaskDataset):
-    def __init__(self, root, processor):
+    def __init__(self, root, processor, template_name: str, template_pattern="mme"):
         root = Path(root)
         data = []
         for subset in EVAL_TYPE_DICT["Perception"] + EVAL_TYPE_DICT["Cognition"]:
@@ -50,6 +49,7 @@ class MMEDataset(TaskDataset):
 
         self.data = data
         self.processor = processor
+        self.set_templatizer(template_pattern, template_name)
 
     def __len__(self):
         return len(self.data)
@@ -57,11 +57,10 @@ class MMEDataset(TaskDataset):
     def __getitem__(self, index):
         dset_name, imgpath, question, answer = self.data[index]
 
-        prompt = f"Answer the question using a single word or phrase. {question}"
-        prompt = self.build_prompt(prompt)
+        prompt = self.build_prompt(question)
 
         imgid = imgpath.name
-        image = Image.open(imgpath)
+        image = utils.load_image(imgpath)
 
         data = {
             "question": question,

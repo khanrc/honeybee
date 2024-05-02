@@ -202,7 +202,6 @@ class OSS(DefaultIO):
             #     path = cache_file(full_path)
             #     return super().open(path, mode)
             if mode == 'rb':
-                # TODO for a large file, this will load the whole file into memory
                 return NullContextWrapper(BytesIO(obj.read()))
             else:
                 assert mode == 'r'
@@ -270,8 +269,6 @@ class OSS(DefaultIO):
         if src != dst:
             src_bucket_name, src = self._split_name(src)
             bucket.copy_object(src_bucket_name, src, dst)
-        # TODO: support large file copy
-        # https://help.aliyun.com/document_detail/88465.html?spm=a2c4g.11174283.6.882.4d157da2mgp3xc
 
     def listdir(self, path, recursive=False, full_path=False, contains=None):
         if not path.startswith('oss://'):
@@ -388,7 +385,6 @@ class OSSFile:
         try:
             self.bucket.append_object(self.path, self.position, self.buffer.getvalue())
         except oss2.exceptions.RequestError as e:
-            # TODO test whether this works
             if 'timeout' not in str(e):
                 raise e
             # retry if timeout

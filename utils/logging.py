@@ -1,12 +1,15 @@
 # Copyright (c) OpenMMLab. All rights reserved.
+"""Modified from https://github.com/open-mmlab/mmcv/blob/v1.7.1/mmcv/utils/logging.py
+"""
+import sys
 import logging
 
-import torch.distributed as dist
+from .dist import get_rank
 
 logger_initialized: dict = {}
 
 
-def get_logger(name="default", log_file=None, log_level=logging.INFO, file_mode='w'):
+def get_logger(name="honeybee", log_file=None, log_level=logging.INFO, file_mode='w'):
     """Initialize and get a logger by name.
 
     If the logger has not been initialized, this method will initialize the
@@ -38,6 +41,18 @@ def get_logger(name="default", log_file=None, log_level=logging.INFO, file_mode=
         if name.startswith(logger_name):
             return logger
 
+    init_logger_(logger, log_file, log_level, file_mode)
+
+    logger_initialized[name] = True
+
+    return logger
+
+
+def init_logger_(logger, log_file=None, log_level=logging.INFO, file_mode='w'):
+    """Initialize logger after getting logger.
+    """
+    logger.handlers.clear()
+
     # handle duplicate logs to the console
     # Starting in 1.8.0, PyTorch DDP attaches a StreamHandler <stderr> (NOTSET)
     # to the root logger. As logger.propagate is True by default, this root
@@ -49,13 +64,11 @@ def get_logger(name="default", log_file=None, log_level=logging.INFO, file_mode=
         if type(handler) is logging.StreamHandler:
             handler.setLevel(logging.ERROR)
 
-    stream_handler = logging.StreamHandler()
+    # use stdout instead of stderr to compat with print in BC
+    stream_handler = logging.StreamHandler(sys.stdout)
     handlers = [stream_handler]
 
-    if dist.is_available() and dist.is_initialized():
-        rank = dist.get_rank()
-    else:
-        rank = 0
+    rank = get_rank()
 
     # only rank 0 will add a FileHandler
     if rank == 0 and log_file is not None:
@@ -65,7 +78,6 @@ def get_logger(name="default", log_file=None, log_level=logging.INFO, file_mode=
         file_handler = logging.FileHandler(log_file, file_mode)
         handlers.append(file_handler)
 
-    # log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     log_format = "%(levelname)s %(asctime)s | %(message)s"
     date_format = "%m/%d %H:%M:%S"
     formatter = logging.Formatter(log_format, date_format)
@@ -79,9 +91,7 @@ def get_logger(name="default", log_file=None, log_level=logging.INFO, file_mode=
     else:
         logger.setLevel(logging.ERROR)
 
-    logger_initialized[name] = True
-
-    return logger
+    logger.disabled = False
 
 
 def print_log(msg, logger=None, level=logging.INFO):

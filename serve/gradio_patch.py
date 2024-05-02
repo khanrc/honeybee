@@ -14,6 +14,7 @@ class _Keywords(Enum):
 
 
 @document("style")
+# class Chatbot(Changeable, Selectable, IOComponent, JSONSerializable):
 class Chatbot(Changeable, IOComponent, JSONSerializable):
     """
     Displays a chatbot output showing both user submitted messages and responses. Supports a subset of Markdown including bold, italics, code, and images.

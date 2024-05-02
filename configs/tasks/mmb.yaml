@@ -7,8 +7,9 @@ mmb:
     name: MMBDataset
     split: dev
     root: ./data/MMBench
+    template_name: ${data_config.template.name}
   gen_kwargs:
-    max_length: 128
+    max_new_tokens: 128
     top_k: 5
     num_beams: 1
     do_sample: False
